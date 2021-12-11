@@ -76,10 +76,10 @@ def diag_hess_g(beta, A, b, lamb2):
         for k in range(l):
             if j == k:
                 q1 = -1 * b[k] * (np.dot(A[k] @ b))
-                q2 = -1 * b[k] * (np.dot(A[k])
-                #Q1 = lamb2[k] + np.exp(q1) * (q2[k]**2) * (1/(1 + np.exp(q1)))
-                #Q2 = (np.exp(q1)**2) * q2[k] * (1/((1 + np.exp(q1))**2))
-                #hess[j, k] += Q1 - Q2
+                q2 = -1 * b[k] * (np.dot(A[k]))
+                Q1 = lamb2[k] + np.exp(q1) * (q2[k]**2) * (1/(1 + np.exp(q1)))
+                Q2 = (np.exp(q1)**2) * q2[k] * (1/((1 + np.exp(q1))**2))
+                hess[j, k] += Q1 - Q2
     return hess
 
 
@@ -149,6 +149,33 @@ def acc_proximal_descent(objective, x_0, f,  lamb1, grad_fis, grad_F, t,  output
     return x_tildes
 
 
+def stoch_acc_prox_descent(objective, x_0, f,  lamb1, grad_fis, grad_F, t,  output = True):
+    i = 0
+    xi = x_0.copy()
+    x_tildes = [xi]
+    n = len(grad_fis)
+    for i in range(2):
+        grad = random.choice(grad_fis)
+        v = x_tildes[-1] - (t * grad(x_tildes[-1]))
+        x_tildes.append(prox_opp(v, t, lamb1))
+        i += 1
+
+    while f(x_tildes[-1]) > objective and i < 100000:
+        grad = random.choice(grad_fis)
+        gamma = x_tildes[-1] + ((i - 2) / (i + 1)) * (x_tildes[-1] - x_tildes[-2])
+        v = gamma - (t * grad(gamma))
+        x_tildes.append(prox_opp(v, t, lamb1))
+        i += 1
+        t = 1/i
+        print(f(x_tildes[-1]))
+
+    x = x_tildes[-1]
+    if output:
+        print(f'After {i} iterations, accelerated proximal descent converged to objective {f(x)}')
+    return x_tildes
+
+
+
 def proximal_descent(objective, x_0, f, lamb1, grad_fis, t, output = True):
     i = 0
     xi = x_0
@@ -195,6 +222,51 @@ def Prox_SVRG(x_0, f, grad_fis, t, m, lamb1, objective, output = True):
     if output:
         print(f'After {outer_loops} outer loop iterations, converged to objective {f(x_tilde)}')
     return x_tildes
+
+
+def Prox_SVRG_var(x_0, f, grad_fis, t, m, lamb1, objective, alt = False, output = True):
+    n = len(x_0)
+    l = len(grad_fis)
+
+    vars = []
+    reduced_vars = []
+
+    outer_loops = 0
+    x_tilde = x_0
+    x_tildes = [x_tilde]
+    while f(x_tilde) > objective:
+        pass_vars = []
+        pass_reduced_vars = []
+        x_ks = [copy(x_tilde)]
+        full_grad = (1/l) * np.sum([grad_fi(x_tilde) for grad_fi in grad_fis], axis = 0)
+        for i in range(m - 1):
+            x_km1 = x_ks[-1]
+            k = random.randrange(n)
+            grad = grad_fis[k]
+
+            v = grad(x_km1) - grad(x_tilde) + full_grad
+            x_k = prox_opp(x_km1 - t*v, t, lamb1)
+            x_ks.append(x_k)
+
+            pass_vars.append(np.linalg.norm(full_grad - grad(x_km1))**2)
+            pass_reduced_vars.append(np.linalg.norm(full_grad - v)**2)
+
+        vars.append(np.mean(pass_vars))
+        reduced_vars.append(np.mean(pass_reduced_vars))
+
+        if not alt:
+            w = (1/m) * np.sum(x_ks, axis = 0)
+        else:
+            w = x_ks[-1]
+
+        x_tilde = w
+        x_tildes.append(x_tilde)
+        outer_loops += 1
+        print(f(x_tilde))
+
+    if output:
+        print(f'After {outer_loops} outer loop iterations, converged to objective {f(x_tilde)}')
+    return vars, reduced_vars
 
 
 def Prox_SVRG_2(x_0, f, grad_fis, t, m, lamb1, objective, output = True):
@@ -354,20 +426,27 @@ def experiment_5(X, y, f, lamb1, lamb2, objective):
 
     x_tildes_1 = Prox_SVRG(x_0, f, grad_fis, t, m, lamb1, objective)
     objetives_1 = [f(x) - objective + q for x in x_tildes_1]
-    passes_1 = [3*i for i in range(len(x_tildes_1))]
+    passes_1 = [5*i for i in range(len(x_tildes_1))]
     plt.plot(passes_1, objetives_1, label='Prox SVG', color='blue')
     plt.yscale('log')
 
     x_tildes_2 = Prox_SVRG_2(x_0, f, grad_fis, t, m, lamb1, objective)
     objetives_2 = [f(x) - objective + q for x in x_tildes_2]
-    passes_2 = [3*i for i in range(len(x_tildes_2))]
+    passes_2 = [5*i for i in range(len(x_tildes_2))]
     plt.plot(passes_2, objetives_2, label='Alt Prox SVG', color='red')
     plt.yscale('log')
 
     x_tildes_3 = acc_proximal_descent(objective, x_0, f, lamb1, grad_fis, grad_F, t)
     objetives_3 = [f(x) - objective + q for x in x_tildes_3]
     passes_3 = [i for i in range(len(x_tildes_3))]
-    plt.plot(passes_3, objetives_3, label='Acc proximal descent', color='green')
+    plt.plot(passes_3, objetives_3, label='Accelerated Prox-FG', color='green')
+    plt.yscale('log')
+
+    n = len(grad_fis)
+    x_tildes_4 = stoch_acc_prox_descent(objective, x_0, f, lamb1, grad_fis, grad_F, t)
+    objetives_4 = [f(x) - objective + q for x in x_tildes_4]
+    passes_4 = [i//n for i in range(len(x_tildes_4))]
+    plt.plot(passes_4, objetives_4, label='Accelerated Prox-SG', color='black')
     plt.yscale('log')
 
     plt.xlabel('Number of effective passes')
@@ -386,33 +465,27 @@ def experiment_6(X, y, f, lamb1, lamb2, objective):
     x_0 = np.zeros(X.shape[1])
 
     q = 10 ** (-1 * (len(str(objective)) - 2))
-    x_tildes_1 = Prox_SVRG(x_0, f, grad_fis, t, m, lamb1, objective)
-    objetives_1 = [f(x) - objective + q for x in x_tildes_1]
-    vars_1 = [np.var(np.asarray(objetives_1[i: i+50])) for i in range(len(objetives_1)-50)]
-    passes_1 = [3*i for i in range(len(x_tildes_1))]
-    plt.plot(passes_1[:len(vars_1)], vars_1, label='Prox SVG', color='blue')
+    vars1, reduced_vars1 = Prox_SVRG_var(x_0, f, grad_fis, t, m, lamb1, objective)
+    passes1 = [5 * i for i in range(len(vars1))]
+    plt.plot(passes1, vars1, label='Full variance', color='blue')
+    plt.plot(passes1, reduced_vars1, label='Reduced variance', color='red')
     plt.yscale('log')
 
-    x_tildes_2 = Prox_SVRG_2(x_0, f, grad_fis, t, m, lamb1, objective)
-    objetives_2 = [f(x) - objective + q for x in x_tildes_2]
-    vars_2 = [np.var(np.asarray(objetives_2[i: i + 50])) for i in range(len(objetives_2) - 50)]
-    passes_2 = [3 * i for i in range(len(x_tildes_2))]
-    plt.plot(passes_2[:len(vars_2)], vars_2, label='Alt Prox SVG', color='red')
+
+    q = 10 ** (-1 * (len(str(objective)) - 2))
+    vars2, reduced_vars2 = Prox_SVRG_var(x_0, f, grad_fis, t, m, lamb1, objective, alt = True)
+    passes2 = [5 * i for i in range(len(vars2))]
+    plt.plot(passes2, vars2, label='Alt full variance', color='green')
+    plt.plot(passes2, reduced_vars2, label='Alt Reduced variance', color='black')
     plt.yscale('log')
 
-    x_tildes_3 = acc_proximal_descent(objective, x_0, f, lamb1, grad_fis, grad_F, t)
-    objetives_3 = [f(x) - objective + q for x in x_tildes_3]
-    vars_3 = [np.var(np.asarray(objetives_3[i: i + 50])) for i in range(len(objetives_3) - 50)]
-    passes_3 = [i for i in range(len(x_tildes_3))]
-    plt.plot(passes_3[:len(vars_3)], vars_3, label='Acc proximal descent', color='green')
-    plt.yscale('log')
-
+    x_lim = min(passes1[-1], passes2[-1])
+    plt.xlim(right = x_lim)
     plt.xlabel('Number of effective passes')
-    plt.ylabel('Variance of [x_k,... x_(k+50)]')
+    plt.ylabel('Gradient variance')
     plt.legend()
     plt.savefig('plots/experiment_6_plot.png')
     plt.close('all')
-
 
 def run():
 
@@ -443,7 +516,7 @@ def run():
     def f2(x):
         return f(x, X2, y2, lamb1 = lamb1, lamb2 = lamb2)
 
-    objective = 0.28970004324
+    objective = 0.2897000432320591
 
     #experiment_1(X2, y2, f2, lamb1, lamb2, objective)
     #experiment_2(X2, y2, f2, lamb1, lamb2, objective)
@@ -451,6 +524,7 @@ def run():
     #experiment_4(X2, y2, f2, lamb1, lamb2, objective)
     #experiment_5(X2, y2, f2, lamb1, lamb2, objective)
     experiment_6(X2, y2, f2, lamb1, lamb2, objective)
+
 
 
 if __name__ == '__main__':
