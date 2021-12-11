@@ -68,7 +68,7 @@ def G(x, t, lamb1, grad_fis, grad = grad_F):
     Gtx = (x - prox_opp(v, t, lamb1))/t
     return Gtx
 
-'''
+
 def diag_hess_g(beta, A, b, lamb2):
     l = len(beta)
     hess = np.zeros((l, l))
@@ -77,11 +77,11 @@ def diag_hess_g(beta, A, b, lamb2):
             if j == k:
                 q1 = -1 * b[k] * (np.dot(A[k] @ b))
                 q2 = -1 * b[k] * (np.dot(A[k])
-                Q1 = lamb2[k] + np.exp(q1) * (q2[k]**2) * (1/(1 + np.exp(q1)))
-                Q2 = (np.exp(q1)**2) * q2[k] * (1/((1 + np.exp(q1))**2))
-                hess[j, k] += Q1 - Q2
+                #Q1 = lamb2[k] + np.exp(q1) * (q2[k]**2) * (1/(1 + np.exp(q1)))
+                #Q2 = (np.exp(q1)**2) * q2[k] * (1/((1 + np.exp(q1))**2))
+                #hess[j, k] += Q1 - Q2
     return hess
-'''
+
 
 def newton_prox_decision(x, lamb, t, diag):
     if x > lamb * t * diag:
@@ -196,6 +196,7 @@ def Prox_SVRG(x_0, f, grad_fis, t, m, lamb1, objective, output = True):
         print(f'After {outer_loops} outer loop iterations, converged to objective {f(x_tilde)}')
     return x_tildes
 
+
 def Prox_SVRG_2(x_0, f, grad_fis, t, m, lamb1, objective, output = True):
     n = len(x_0)
     l = len(grad_fis)
@@ -260,7 +261,7 @@ def experiment_1(X, y, f, lamb1, lamb2, objective):
     plt.ylabel('Objective gap f(x_k) - f(x*)')
     plt.ylim(bottom=max_min_obj)
     plt.legend()
-    plt.savefig('experiment_1_plot_alt.png')
+    plt.savefig('plots/experiment_1_plot_alt.png')
     plt.close('all')
 
 
@@ -288,7 +289,7 @@ def experiment_2(X, y, f, lamb1, lamb2, objective):
     plt.ylabel('Objective gap f(x_k) - f(x*)')
     plt.ylim(bottom = max_min_obj)
     plt.legend()
-    plt.savefig('experiment_2_plot_alt.png')
+    plt.savefig('plots/experiment_2_plot_alt.png')
     plt.close('all')
 
 
@@ -316,7 +317,7 @@ def experiment_3(X, y, f, lamb1, lamb2, objective):
     plt.ylabel('Objective gap f(x_k) - f(x*)')
     plt.ylim(bottom = max(objetives_1[-1], objetives_2[-1]))
     plt.legend()
-    plt.savefig('experiment_3_plot.png')
+    plt.savefig('plots/experiment_3_plot.png')
     plt.close('all')
 
 
@@ -339,7 +340,7 @@ def experiment_4(X, y, f, lamb1, lamb2, objective):
     plt.xlabel('Number of effective passes')
     plt.ylabel('Number of nonzero cordinates')
     plt.legend()
-    plt.savefig('experiment_4_plot.png')
+    plt.savefig('plots/experiment_4_plot.png')
     plt.close('all')
 
 
@@ -364,8 +365,8 @@ def experiment_5(X, y, f, lamb1, lamb2, objective):
     plt.yscale('log')
 
     x_tildes_3 = acc_proximal_descent(objective, x_0, f, lamb1, grad_fis, grad_F, t)
-    objetives_3 = [f(x) - objective + q for x in x_tildes_2]
-    passes_3 = [i for i in range(len(x_tildes_2))]
+    objetives_3 = [f(x) - objective + q for x in x_tildes_3]
+    passes_3 = [i for i in range(len(x_tildes_3))]
     plt.plot(passes_3, objetives_3, label='Acc proximal descent', color='green')
     plt.yscale('log')
 
@@ -373,14 +374,14 @@ def experiment_5(X, y, f, lamb1, lamb2, objective):
     plt.ylabel('Objective gap f(x_k) - f(x*)')
     plt.ylim(bottom = max(objetives_1[-1], objetives_2[-1]))
     plt.legend()
-    plt.savefig('experiment_5_plot.png')
+    plt.savefig('plots/experiment_5_plot.png')
     plt.close('all')
 
 
 def experiment_6(X, y, f, lamb1, lamb2, objective):
     L = 1 / 4
     m = 4 * len(X)
-    t = .1 / L
+    t = 1 / L
     grad_fis = get_cordinate_grads(X, y, lamb2)
     x_0 = np.zeros(X.shape[1])
 
@@ -389,30 +390,28 @@ def experiment_6(X, y, f, lamb1, lamb2, objective):
     objetives_1 = [f(x) - objective + q for x in x_tildes_1]
     vars_1 = [np.var(np.asarray(objetives_1[i: i+50])) for i in range(len(objetives_1)-50)]
     passes_1 = [3*i for i in range(len(x_tildes_1))]
-    plt.plot(passes_1[:len(vars)], vars_1, label='Prox SVG', color='blue')
+    plt.plot(passes_1[:len(vars_1)], vars_1, label='Prox SVG', color='blue')
     plt.yscale('log')
 
     x_tildes_2 = Prox_SVRG_2(x_0, f, grad_fis, t, m, lamb1, objective)
     objetives_2 = [f(x) - objective + q for x in x_tildes_2]
     vars_2 = [np.var(np.asarray(objetives_2[i: i + 50])) for i in range(len(objetives_2) - 50)]
     passes_2 = [3 * i for i in range(len(x_tildes_2))]
-    plt.plot(passes_2, vars_2, label='Alt Prox SVG', color='red')
+    plt.plot(passes_2[:len(vars_2)], vars_2, label='Alt Prox SVG', color='red')
     plt.yscale('log')
 
     x_tildes_3 = acc_proximal_descent(objective, x_0, f, lamb1, grad_fis, grad_F, t)
     objetives_3 = [f(x) - objective + q for x in x_tildes_3]
     vars_3 = [np.var(np.asarray(objetives_3[i: i + 50])) for i in range(len(objetives_3) - 50)]
-    passes_3 = [i for i in range(len(x_tildes_2))]
-    plt.plot(passes_3, vars_3, label='Acc proximal descent', color='green')
+    passes_3 = [i for i in range(len(x_tildes_3))]
+    plt.plot(passes_3[:len(vars_3)], vars_3, label='Acc proximal descent', color='green')
     plt.yscale('log')
 
     plt.xlabel('Number of effective passes')
     plt.ylabel('Variance of [x_k,... x_(k+50)]')
     plt.legend()
-    plt.savefig('experiment_6_plot.png')
+    plt.savefig('plots/experiment_6_plot.png')
     plt.close('all')
-
-
 
 
 def run():
@@ -450,7 +449,7 @@ def run():
     #experiment_2(X2, y2, f2, lamb1, lamb2, objective)
     #experiment_3(X2, y2, f2, lamb1, lamb2, objective)
     #experiment_4(X2, y2, f2, lamb1, lamb2, objective)
-    experiment_5(X2, y2, f2, lamb1, lamb2, objective)
+    #experiment_5(X2, y2, f2, lamb1, lamb2, objective)
     experiment_6(X2, y2, f2, lamb1, lamb2, objective)
 
 
