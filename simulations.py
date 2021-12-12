@@ -320,7 +320,7 @@ def experiment_1(X, y, f, lamb1, lamb2, objective):
     for k in [1, 2, 4, 6, 8]:
         m = k * len(X)
         x_0 = np.zeros(X.shape[1])
-        x_tildes = Prox_SVRG_2(x_0, f, grad_fis, t, m, lamb1, objective)
+        x_tildes = Prox_SVRG(x_0, f, grad_fis, t, m, lamb1, objective)
 
         objetives = [f(x) - objective + q for x in x_tildes]
         passes = [(k+1) * i for i in range(len(x_tildes))]
@@ -330,10 +330,10 @@ def experiment_1(X, y, f, lamb1, lamb2, objective):
         i += 1
 
     plt.xlabel('Number of effective passes')
-    plt.ylabel('Objective gap f(x_k) - f(x*)')
+    plt.ylabel(r'Objective gap $P(x_k) - P_*$')
     plt.ylim(bottom=max_min_obj)
     plt.legend()
-    plt.savefig('plots/experiment_1_plot_alt.png')
+    plt.savefig('plots/experiment_1_plot.png')
     plt.close('all')
 
 
@@ -348,20 +348,20 @@ def experiment_2(X, y, f, lamb1, lamb2, objective):
         t = k / L
         m = 4 * len(X)
         x_0 = np.zeros(X.shape[1])
-        x_tildes = Prox_SVRG_2(x_0, f, grad_fis, t, m, lamb1, objective)
+        x_tildes = Prox_SVRG(x_0, f, grad_fis, t, m, lamb1, objective)
 
         objetives = [f(x) - objective + q for x in x_tildes]
         max_min_obj = max(max_min_obj, objetives[-1])
         passes = [3*i for i in range(len(x_tildes))]
-        plt.plot(passes, objetives, label=f't = L/{k}', color=colors[i])
+        plt.plot(passes, objetives, label= r'$\eta$ = ' + f'{k}/L', color=colors[i])
         plt.yscale('log')
         i += 1
 
     plt.xlabel('Number of effective passes')
-    plt.ylabel('Objective gap f(x_k) - f(x*)')
+    plt.ylabel(r'Objective gap $P(x_k) - P_*$')
     plt.ylim(bottom = max_min_obj)
     plt.legend()
-    plt.savefig('plots/experiment_2_plot_alt.png')
+    plt.savefig('plots/experiment_2_plot.png')
     plt.close('all')
 
 
@@ -376,17 +376,17 @@ def experiment_3(X, y, f, lamb1, lamb2, objective):
     x_tildes_1 = Prox_SVRG(x_0, f, grad_fis, t, m, lamb1, objective)
     objetives_1 = [f(x) - objective + q for x in x_tildes_1]
     passes_1 = [3*i for i in range(len(x_tildes_1))]
-    plt.plot(passes_1, objetives_1, label='Prox SVG', color='blue')
+    plt.plot(passes_1, objetives_1, label='Prox-SVRG', color='blue')
     plt.yscale('log')
 
     x_tildes_2 = acc_proximal_descent(objective, x_0, f, lamb1, grad_fis, grad_F, t)
     objetives_2 = [f(x) - objective + q for x in x_tildes_2]
     passes_2 = [i for i in range(len(x_tildes_2))]
-    plt.plot(passes_2, objetives_2, label='Acc proximal descent', color='red')
+    plt.plot(passes_2, objetives_2, label='Accelerated Prox-FG', color='red')
     plt.yscale('log')
 
     plt.xlabel('Number of effective passes')
-    plt.ylabel('Objective gap f(x_k) - f(x*)')
+    plt.ylabel(r'Objective gap $P(x_k) - P_*$')
     plt.ylim(bottom = max(objetives_1[-1], objetives_2[-1]))
     plt.legend()
     plt.savefig('plots/experiment_3_plot.png')
@@ -427,13 +427,13 @@ def experiment_5(X, y, f, lamb1, lamb2, objective):
     x_tildes_1 = Prox_SVRG(x_0, f, grad_fis, t, m, lamb1, objective)
     objetives_1 = [f(x) - objective + q for x in x_tildes_1]
     passes_1 = [5*i for i in range(len(x_tildes_1))]
-    plt.plot(passes_1, objetives_1, label='Prox SVG', color='blue')
+    plt.plot(passes_1, objetives_1, label='Prox-SVRG', color='blue')
     plt.yscale('log')
 
     x_tildes_2 = Prox_SVRG_2(x_0, f, grad_fis, t, m, lamb1, objective)
     objetives_2 = [f(x) - objective + q for x in x_tildes_2]
     passes_2 = [5*i for i in range(len(x_tildes_2))]
-    plt.plot(passes_2, objetives_2, label='Alt Prox SVG', color='red')
+    plt.plot(passes_2, objetives_2, label='NM-Prox-SVRG', color='red')
     plt.yscale('log')
 
     x_tildes_3 = acc_proximal_descent(objective, x_0, f, lamb1, grad_fis, grad_F, t)
@@ -442,16 +442,18 @@ def experiment_5(X, y, f, lamb1, lamb2, objective):
     plt.plot(passes_3, objetives_3, label='Accelerated Prox-FG', color='green')
     plt.yscale('log')
 
+    '''
     n = len(grad_fis)
     x_tildes_4 = stoch_acc_prox_descent(objective, x_0, f, lamb1, grad_fis, grad_F, t)
     objetives_4 = [f(x) - objective + q for x in x_tildes_4]
     passes_4 = [i//n for i in range(len(x_tildes_4))]
     plt.plot(passes_4, objetives_4, label='Accelerated Prox-SG', color='black')
     plt.yscale('log')
+    '''
 
     plt.xlabel('Number of effective passes')
-    plt.ylabel('Objective gap f(x_k) - f(x*)')
-    plt.ylim(bottom = max(objetives_1[-1], objetives_2[-1]))
+    plt.ylabel(r'Objective gap $P(x_k) - P_*$')
+    plt.ylim(bottom = max(objetives_1[-1], objetives_2[-1], objetives_3[-1]))
     plt.legend()
     plt.savefig('plots/experiment_5_plot.png')
     plt.close('all')
@@ -467,16 +469,16 @@ def experiment_6(X, y, f, lamb1, lamb2, objective):
     q = 10 ** (-1 * (len(str(objective)) - 2))
     vars1, reduced_vars1 = Prox_SVRG_var(x_0, f, grad_fis, t, m, lamb1, objective)
     passes1 = [5 * i for i in range(len(vars1))]
-    plt.plot(passes1, vars1, label='Full variance', color='blue')
-    plt.plot(passes1, reduced_vars1, label='Reduced variance', color='red')
+    plt.plot(passes1, vars1, label=r'Prox-SVRG $f_{i,k}$ variance', color='blue')
+    plt.plot(passes1, reduced_vars1, label=r'Prox-SVRG $v_k$ variance', color='red')
     plt.yscale('log')
 
 
     q = 10 ** (-1 * (len(str(objective)) - 2))
     vars2, reduced_vars2 = Prox_SVRG_var(x_0, f, grad_fis, t, m, lamb1, objective, alt = True)
     passes2 = [5 * i for i in range(len(vars2))]
-    plt.plot(passes2, vars2, label='Alt full variance', color='green')
-    plt.plot(passes2, reduced_vars2, label='Alt Reduced variance', color='black')
+    plt.plot(passes2, vars2, label=r'NM-Prox-SVRG $f_{i,k}$ variance', color='green')
+    plt.plot(passes2, reduced_vars2, label=r'NM-Prox-SVRG $v_k$ variance', color='black')
     plt.yscale('log')
 
     x_lim = min(passes1[-1], passes2[-1])
@@ -486,6 +488,7 @@ def experiment_6(X, y, f, lamb1, lamb2, objective):
     plt.legend()
     plt.savefig('plots/experiment_6_plot.png')
     plt.close('all')
+
 
 def run():
 
@@ -516,14 +519,16 @@ def run():
     def f2(x):
         return f(x, X2, y2, lamb1 = lamb1, lamb2 = lamb2)
 
-    objective = 0.2897000432320591
+    #objective = 0.2897000432320591
+    objective_1 = 0.289700045
+    objective_2 = 0.2897000432320591
 
-    #experiment_1(X2, y2, f2, lamb1, lamb2, objective)
-    #experiment_2(X2, y2, f2, lamb1, lamb2, objective)
+    experiment_1(X2, y2, f2, lamb1, lamb2, objective_1)
+    experiment_2(X2, y2, f2, lamb1, lamb2, objective_1)
     #experiment_3(X2, y2, f2, lamb1, lamb2, objective)
     #experiment_4(X2, y2, f2, lamb1, lamb2, objective)
     #experiment_5(X2, y2, f2, lamb1, lamb2, objective)
-    experiment_6(X2, y2, f2, lamb1, lamb2, objective)
+    experiment_6(X2, y2, f2, lamb1, lamb2, objective_2)
 
 
 
